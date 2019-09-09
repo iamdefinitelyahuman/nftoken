@@ -24,7 +24,8 @@ contract NFToken {
 
     struct Balance {
         uint64 balance;
-        uint64[] ranges;
+        uint64 length;
+        uint64[9223372036854775808] ranges;
     }
 
     struct Range {
@@ -108,19 +109,9 @@ contract NFToken {
      */
     function rangesOf(address _owner) external view returns (uint64[2][]) {
         Balance storage b = balances[_owner];
-        uint256 _count;
-        for (uint256 i; i < b.ranges.length; i++) {
-            if (b.ranges[i] > 0) {
-                _count++;
-            }
-        }
-        uint64[2][] memory _ranges = new uint64[2][](_count);
-        _count = 0;
-        for (i = 0; i < b.ranges.length; i++) {
-            if (b.ranges[i] > 0) {
-                _ranges[_count] = [b.ranges[i], rangeMap[b.ranges[i]].stop];
-                _count++;
-            }
+        uint64[2][] memory _ranges = new uint64[2][](balances[_owner].length);
+        for (uint256 i; i < balances[_owner].length; i++) {
+            _ranges[i] = [b.ranges[i], rangeMap[b.ranges[i]].stop];
         }
         return _ranges;
     }
@@ -150,7 +141,8 @@ contract NFToken {
         } else {
             /* create new range */
             _setRange(_start, _owner, _stop);
-            balances[_owner].ranges.push(_start);
+            balances[_owner].ranges[balances[_owner].length] = _start;
+            balances[_owner].length++;
         }
         uint64 _old = balances[_owner].balance;
         balances[_owner].balance += _value;
@@ -467,16 +459,27 @@ contract NFToken {
     )
         internal
     {
-        uint64[] storage r = balances[_addr].ranges;
-        for (uint256 i; i < r.length; i++) {
+        uint64[9223372036854775808] storage r = balances[_addr].ranges;
+        if (_old == 0) {
+            // add new range
+            r[balances[_addr].length] = _new;
+            balances[_addr].length++;
+            return;
+        }
+        for (uint256 i; i <= balances[_addr].length; i++) {
             if (r[i] == _old) {
-                r[i] = _new;
+                if (_new > 0) {
+                    // replace existing range
+                    r[i] = _new;
+                } else {
+                    // delete existing range
+                    r[i] = r[balances[_addr].length];
+                    balances[_addr].length--;
+                }
                 return;
             }
         }
-        if (_new != 0) {
-            r.push(_new);
-        }
+        revert(); // dev: invalid range replacement pointer
     }
 
     /**
