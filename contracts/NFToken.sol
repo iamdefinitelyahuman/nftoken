@@ -1,5 +1,7 @@
 pragma solidity ^0.5.11;
 
+import "./SafeMath.sol";
+
 /**
     @title Non-Fungible ERC20
     @author Ben Hauser - b.hauser@zerolaw.tech
@@ -9,7 +11,11 @@ pragma solidity ^0.5.11;
  */
 contract NFToken {
 
+    using SafeMath for uint256;
+    using SafeMath64 for uint64;
+
     address constant ZERO_ADDRESS = address(0);
+    uint256 constant MAX_UPPER_BOUND = 2**64 - 2;
 
     /** cannot fractionalize non-fungibles */
     uint8 public constant decimals = 0;
@@ -132,9 +138,8 @@ contract NFToken {
         returns (bool)
     {
         require(_value > 0); // dev: mint 0
-        require(upperBound + _value > upperBound); // dev: overflow
-        require(upperBound + _value <= 2**64 - 2); // dev: upper bound
-        uint64 _start = uint64(upperBound + 1);
+        require(upperBound.add(_value) <= MAX_UPPER_BOUND); // dev: upper bound
+        uint64 _start = upperBound.add(1);
         uint64 _stop = _start + _value;
         if (rangeMap[tokens[upperBound]].owner == _owner) {
             /* merge with previous range */
@@ -144,12 +149,11 @@ contract NFToken {
             /* create new range */
             _setRange(_start, _owner, _stop);
             balances[_owner].ranges[balances[_owner].length] = _start;
-            balances[_owner].length++;
+            balances[_owner].length = balances[_owner].length.add(1);
         }
-        uint64 _old = balances[_owner].balance;
-        balances[_owner].balance += _value;
-        totalSupply += _value;
-        upperBound += _value;
+        balances[_owner].balance = balances[_owner].balance.add(_value);
+        totalSupply = totalSupply.add(_value);
+        upperBound = upperBound.add(_value);
         emit Transfer(ZERO_ADDRESS, msg.sender, _value);
         emit TransferRange(ZERO_ADDRESS, msg.sender, _start, _stop, _value);
         return true;
@@ -175,13 +179,12 @@ contract NFToken {
             _splitRange(_start);
         }
         _replaceInBalanceRange(_owner, _start, 0);
-        uint64 _value = _stop - _start;
-        totalSupply -= _value;
-        uint64 _old = balances[_owner].balance;
-        balances[_owner].balance -= _value;
+        uint64 _value = _stop.sub(_start);
+        totalSupply = totalSupply.sub(_value);
+        balances[_owner].balance = balances[_owner].balance.sub(_value);
         emit Transfer(_owner, ZERO_ADDRESS, _value);
         emit TransferRange(_owner, ZERO_ADDRESS, _start, _stop, _value);
-        rangeMap[_start].owner = address(0);
+        rangeMap[_start].owner = ZERO_ADDRESS;
         return true;
     }
 
@@ -193,7 +196,7 @@ contract NFToken {
         @param _split Index to split the range at
      */
     function _splitRange(uint64 _split) internal {
-        if (tokens[_split-1] != 0 && tokens[_split] > tokens[_split-1]) return;
+        if (tokens[_split.sub(1)] != 0 && tokens[_split] > tokens[_split.sub(1)]) return;
         uint64 _pointer = _getPointer(_split);
         Range storage r = rangeMap[_pointer];
         uint64 _stop = r.stop;
@@ -233,7 +236,7 @@ contract NFToken {
         returns (bool)
     {
         require(allowed[_from][msg.sender] >= _value, "Insufficient allowance");
-        allowed[_from][msg.sender] -= _value;
+        allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
         _transfer(_from, _to, _value);
         return true;
     }
@@ -243,44 +246,36 @@ contract NFToken {
         @dev common logic for transfer() and transferFrom()
         @param _from Sender address
         @param _to Receiver address
-        @param _value Amount to transfer
+        @param _bigValue Amount to transfer
      */
     function _transfer(
         address _from,
         address _to,
-        uint256 _value
+        uint256 _bigValue
     )
         internal
     {
+        require(_bigValue <= MAX_UPPER_BOUND);
+        uint64 _value = uint64(_bigValue);
+        uint64[9223372036854775808] storage r = balances[_from].ranges;
+        balances[_from].balance = balances[_from].balance.sub(_value);
+        balances[_to].balance = balances[_to].balance.add(_value);
 
-        uint64 _smallVal = uint64(_value);
-        uint64[] memory _range;
-
-        require(balances[_from].balance >= _smallVal);
-        balances[_from].balance -= _smallVal;
-        balances[_to].balance += _smallVal;
 
         emit Transfer(_from, _to, _value);
-        for (uint256 i; i < _range.length; i++) {
-            if (_range[i] == 0) continue;
-            uint64 _start = _range[i];
+        for (uint256 i; i < balances[_from].length; i++) {
+            uint64 _start = r[i];
             uint64 _stop = rangeMap[_start].stop;
-            uint64 _amount = _stop - _start;
-            if (_smallVal < _amount) {
-                _stop -= _amount - _smallVal;
-                _smallVal = 0;
+            uint64 _amount = _stop.sub(_start);
+            if (_value < _amount) {
+                _stop = _stop.sub(_amount.sub(_value));
+                _value = 0;
             }
             else {
-                _smallVal -= _amount;
+                _value = _value.sub(_amount);
             }
-            _transferSingleRange(
-                _start,
-                _from,
-                _to,
-                _start,
-                _stop
-            );
-            if (_smallVal == 0) {
+            _transferSingleRange(_start, _from, _to, _start, _stop);
+            if (_value == 0) {
                 return;
             }
         }
@@ -304,12 +299,12 @@ contract NFToken {
         returns (bool)
     {
         _checkBounds(_start);
-        _checkBounds(_stop-1);
+        _checkBounds(_stop.sub(1));
         require(_start < _stop); // dev: stop < start
-        uint64 _pointer = _getPointer(_stop-1);
+        uint64 _pointer = _getPointer(_stop.sub(1));
         require(_pointer <= _start); // dev: multiple ranges
 
-        uint64 _value = _stop - _start;
+        uint64 _value = _stop.sub(_start);
 
         require(
             msg.sender == rangeMap[_pointer].owner,
@@ -318,16 +313,10 @@ contract NFToken {
         require(msg.sender != _to, "Cannot send to self");
 
         require(_value <= balances[msg.sender].balance);
-        balances[msg.sender].balance -= _value;
-        balances[_to].balance += _value;
+        balances[msg.sender].balance = balances[msg.sender].balance.sub(_value);
+        balances[_to].balance = balances[_to].balance.add(_value);
 
-        _transferSingleRange(
-            _pointer,
-            msg.sender,
-            _to,
-            _start,
-            _stop
-        );
+        _transferSingleRange(_pointer, msg.sender, _to, _start, _stop);
     }
 
     /**
@@ -349,15 +338,15 @@ contract NFToken {
     {
         Range storage r = rangeMap[_pointer];
         uint64 _rangeStop = r.stop;
-        uint64 _prev = tokens[_start-1];
+        uint64 _prev = tokens[_start.sub(1)];
         emit TransferRange(_from, _to, _start, _stop, _stop-_start);
 
         if (_pointer == _start) {
             /* touches both */
             if (_rangeStop == _stop) {
                 _replaceInBalanceRange(_from, _start, 0);
-                bool _left = rangeMap[_prev].owner == _to;
-                bool _right = rangeMap[_stop].owner == _to;
+                bool _left = (rangeMap[_prev].owner == _to);
+                bool _right = (rangeMap[_stop].owner == _to);
                 /* no join */
                 if (!_left && !_right) {
                     _replaceInBalanceRange(_to, 0, _start);
@@ -465,7 +454,7 @@ contract NFToken {
         if (_old == 0) {
             // add new range
             r[balances[_addr].length] = _new;
-            balances[_addr].length++;
+            balances[_addr].length = balances[_addr].length.add(1);
             return;
         }
         for (uint256 i; i <= balances[_addr].length; i++) {
@@ -476,7 +465,7 @@ contract NFToken {
                 } else {
                     // delete existing range
                     r[i] = r[balances[_addr].length];
-                    balances[_addr].length--;
+                    balances[_addr].length = balances[_addr].length.sub(1);
                 }
                 return;
             }
@@ -492,15 +481,15 @@ contract NFToken {
      */
     function _setRangePointers(uint64 _start, uint64 _stop, uint64 _value) internal {
         tokens[_start] = _value;
-        _stop -= 1;
+        _stop = _stop.sub(1);
         if (_start == _stop) return;
         tokens[_stop] = _value;
-        uint256 _interval = 16;
+        uint64 _interval = 16;
         while (true) {
-            uint256 i = (_stop / _interval * _interval);
+            uint256 i = _stop.div(_interval).mul(_interval);
             if (i == 0) return;
-            _interval *= 16;
-            if (i % _interval == 0) continue;
+            _interval = _interval.mul(16);
+            if (i.mod(_interval) == 0) continue;
             if (i > _start) tokens[i] = _value;
         }
     }
