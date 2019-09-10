@@ -15,7 +15,7 @@ contract NFToken {
     using SafeMath64 for uint64;
 
     address constant ZERO_ADDRESS = address(0);
-    uint256 constant MAX_UPPER_BOUND = 2**64 - 2;
+    uint256 constant MAX_UPPER_BOUND = (2**64) - 2;
 
     /** cannot fractionalize non-fungibles */
     uint8 public constant decimals = 0;
@@ -263,8 +263,8 @@ contract NFToken {
 
 
         emit Transfer(_from, _to, _value);
-        for (uint256 i; i < balances[_from].length; i++) {
-            uint64 _start = r[i];
+        while (balances[_from].length > 0) {
+            uint64 _start = r[0];
             uint64 _stop = rangeMap[_start].stop;
             uint64 _amount = _stop.sub(_start);
             if (_value < _amount) {
@@ -279,7 +279,7 @@ contract NFToken {
                 return;
             }
         }
-        revert();
+        revert(); // dev: ran out of ranges
     }
 
     /**
@@ -464,8 +464,8 @@ contract NFToken {
                     r[i] = _new;
                 } else {
                     // delete existing range
-                    r[i] = r[balances[_addr].length];
                     balances[_addr].length = balances[_addr].length.sub(1);
+                    r[i] = r[balances[_addr].length];
                 }
                 return;
             }
@@ -484,12 +484,13 @@ contract NFToken {
         _stop = _stop.sub(1);
         if (_start == _stop) return;
         tokens[_stop] = _value;
-        uint64 _interval = 16;
+        uint256 _interval = 16;
         while (true) {
-            uint256 i = _stop.div(_interval).mul(_interval);
-            if (i == 0) return;
+            if (_stop < _interval) return;
+            uint256 i = uint256(_stop).div(_interval).mul(_interval);
+
             _interval = _interval.mul(16);
-            if (i.mod(_interval) == 0) continue;
+            if (i % _interval == 0) continue;
             if (i > _start) tokens[i] = _value;
         }
     }
