@@ -1,5 +1,4 @@
-pragma solidity >=0.4.24 <0.5.0;
-
+pragma solidity ^0.5.11;
 
 /**
     @title Non-Fungible ERC20
@@ -9,6 +8,8 @@ pragma solidity >=0.4.24 <0.5.0;
         https://theethereum.wiki/w/index.php/ERC20_Token_Standard
  */
 contract NFToken {
+
+    address constant ZERO_ADDRESS = address(0);
 
     /** cannot fractionalize non-fungibles */
     uint8 public constant decimals = 0;
@@ -33,7 +34,6 @@ contract NFToken {
         uint64 stop;
     }
 
-
     event Transfer(address indexed from, address indexed to, uint256 amount);
     event Approval(address indexed owner, address indexed spender, uint256 amount);
     event TransferRange(
@@ -44,9 +44,11 @@ contract NFToken {
         uint256 amount
     );
 
-    constructor() public {
-        return;
+    constructor(string memory _name, string memory _symbol) public {
+        name = _name;
+        symbol = _symbol;
     }
+
 
     /* modifier to ensure a range index is within bounds */
     function _checkBounds(uint256 _idx) internal view {
@@ -107,7 +109,7 @@ contract NFToken {
         @param _owner Address to query
         @return Array of [(start, stop),..]
      */
-    function rangesOf(address _owner) external view returns (uint64[2][]) {
+    function rangesOf(address _owner) external view returns (uint64[2][] memory) {
         Balance storage b = balances[_owner];
         uint64[2][] memory _ranges = new uint64[2][](balances[_owner].length);
         for (uint256 i; i < balances[_owner].length; i++) {
@@ -148,8 +150,8 @@ contract NFToken {
         balances[_owner].balance += _value;
         totalSupply += _value;
         upperBound += _value;
-        emit Transfer(0x00, msg.sender, _value);
-        emit TransferRange(0x00, msg.sender, _start, _stop, _value);
+        emit Transfer(ZERO_ADDRESS, msg.sender, _value);
+        emit TransferRange(ZERO_ADDRESS, msg.sender, _start, _stop, _value);
         return true;
     }
 
@@ -165,7 +167,7 @@ contract NFToken {
         uint64 _pointer = _getPointer(_stop-1);
         require(_pointer <= _start); // dev: multiple ranges
         address _owner = rangeMap[_pointer].owner;
-        require(_owner != 0x00); // dev: already burnt
+        require(_owner != ZERO_ADDRESS); // dev: already burnt
         if (rangeMap[_pointer].stop > _stop) {
             _splitRange(_stop);
         }
@@ -177,9 +179,9 @@ contract NFToken {
         totalSupply -= _value;
         uint64 _old = balances[_owner].balance;
         balances[_owner].balance -= _value;
-        emit Transfer(_owner, 0x00, _value);
-        emit TransferRange(_owner, 0x00, _start, _stop, _value);
-        rangeMap[_start].owner = 0x00;
+        emit Transfer(_owner, ZERO_ADDRESS, _value);
+        emit TransferRange(_owner, ZERO_ADDRESS, _start, _stop, _value);
+        rangeMap[_start].owner = address(0);
         return true;
     }
 
@@ -239,8 +241,8 @@ contract NFToken {
     /**
         @notice Internal transfer function
         @dev common logic for transfer() and transferFrom()
-        @param _auth Address that called the method
-        @param _addr Array of receiver/sender address
+        @param _from Sender address
+        @param _to Receiver address
         @param _value Amount to transfer
      */
     function _transfer(
@@ -513,7 +515,7 @@ contract NFToken {
     function _getPointer(uint256 i) internal view returns (uint64) {
         uint256 _increment = 1;
         while (true) {
-            if (tokens[i] != 0x00) return tokens[i];
+            if (tokens[i] != 0) return tokens[i];
             if (i % (_increment * 16) == 0) {
                 _increment *= 16;
                 require(i <= upperBound); // dev: exceeds upper bound
