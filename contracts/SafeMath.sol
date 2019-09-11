@@ -22,7 +22,7 @@ library SafeMath {
     }
 
     function sub(uint256 _a, uint256 _b) internal pure returns (uint256) {
-        require(_b <= _a);
+        require(_b <= _a); // dev: underflow
         uint256 c = _a - _b;
 
         return c;
@@ -30,7 +30,7 @@ library SafeMath {
 
     function add(uint256 _a, uint256 _b) internal pure returns (uint256) {
         uint256 c = _a + _b;
-        require(c >= _a);
+        require(c >= _a); // dev: overflow
 
         return c;
     }
@@ -63,7 +63,7 @@ library SafeMath64 {
     }
 
     function sub(uint64 _a, uint64 _b) internal pure returns (uint64) {
-        require(_b <= _a);
+        require(_b <= _a); // dev: underflow
         uint64 c = _a - _b;
 
         return c;
@@ -71,7 +71,7 @@ library SafeMath64 {
 
     function add(uint64 _a, uint64 _b) internal pure returns (uint64) {
         uint64 c = _a + _b;
-        require(c >= _a);
+        require(c >= _a); // dev: overflow
 
         return c;
     }
