@@ -2,6 +2,8 @@
 
 import pytest
 
+ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
 
 def test_burn(accounts, nftmint):
     '''burn'''
@@ -155,3 +157,14 @@ def test_reburn(accounts, nftmint):
     nftmint.burn(100, 200, {'from': accounts[0]})
     with pytest.reverts("dev: only owner tokens"):
         nftmint.burn(100, 200, {'from': accounts[0]})
+
+
+def test_events(accounts, nftmint):
+    nftmint.mint(accounts[0], 10000, {'from': accounts[0]})
+    tx = nftmint.burn(1, 1001, {'from': accounts[0]})
+    assert 'Transfer' in tx.events
+    expected = {'from': accounts[0], 'to': ZERO_ADDRESS, 'amount': 1000}
+    assert tx.events['Transfer'] == expected
+    assert 'TransferRange' in tx.events
+    expected = {'from': accounts[0], 'to': ZERO_ADDRESS, 'start': 1, 'stop': 1001, 'amount': 1000}
+    assert tx.events['TransferRange'] == expected
