@@ -5,7 +5,9 @@ import "./ERC20Interface.sol";
 
 /**
     @title Non-Fungible ERC20
-    @author Ben Hauser - b.hauser@zerolaw.tech
+    @author
+        Ben Hauser - @iamdefinitelyahuman
+        with guidance from Gabriel Shapiro - @lex-node
     @dev
         Expands upon the ERC20 token standard
         https://theethereum.wiki/w/index.php/ERC20_Token_Standard
@@ -15,8 +17,8 @@ contract NFToken is ERC20Interface {
     using SafeMath for uint256;
     using SafeMath64 for uint64;
 
-    address constant ZERO_ADDRESS = address(0);
     uint256 constant MAX_UPPER_BOUND = (2**64) - 2;
+    address constant ZERO_ADDRESS = address(0);
 
     /** cannot fractionalize non-fungibles */
     uint8 public constant decimals = 0;
@@ -153,8 +155,8 @@ contract NFToken is ERC20Interface {
         balances[_owner].balance = balances[_owner].balance.add(_value);
         totalSupply = totalSupply.add(_value);
         upperBound = upperBound.add(_value);
-        emit Transfer(ZERO_ADDRESS, msg.sender, _value);
-        emit TransferRange(ZERO_ADDRESS, msg.sender, _start, _stop, _value);
+        emit Transfer(ZERO_ADDRESS, _owner, _value);
+        emit TransferRange(ZERO_ADDRESS, _owner, _start, _stop, _value);
         return true;
     }
 
@@ -265,12 +267,15 @@ contract NFToken is ERC20Interface {
         uint64 _value = _stop.sub(_start);
 
         require(msg.sender == rangeMap[_pointer].owner); // dev: sender does not own
-        require(msg.sender != _to); // dev: cannot send to self
 
         balances[msg.sender].balance = balances[msg.sender].balance.sub(_value);
         balances[_to].balance = balances[_to].balance.add(_value);
 
-        _transferSingleRange(_pointer, msg.sender, _to, _start, _stop);
+        emit Transfer(msg.sender, _to, _value);
+        if (msg.sender != _to && _value == 0) {
+            _transferSingleRange(_pointer, msg.sender, _to, _start, _stop);
+        }
+
     }
 
     /**
@@ -282,7 +287,6 @@ contract NFToken is ERC20Interface {
      */
     function _transfer(address _from, address _to, uint256 _bigValue) internal {
         require(_bigValue <= MAX_UPPER_BOUND); // dev: uint64 overflow
-        require(_from != _to); // dev: cannot send to self
 
         uint64[9223372036854775808] storage r = balances[_from].ranges;
         uint64 _value = uint64(_bigValue);
@@ -290,6 +294,10 @@ contract NFToken is ERC20Interface {
         balances[_from].balance = balances[_from].balance.sub(_value);
         balances[_to].balance = balances[_to].balance.add(_value);
 
+        emit Transfer(_from, _to, _bigValue);
+        if (_from == _to || _bigValue == 0) {
+            return;
+        }
         while (balances[_from].length > 0) {
             uint64 _start = r[0];
             uint64 _stop = rangeMap[_start].stop;
@@ -303,7 +311,6 @@ contract NFToken is ERC20Interface {
             }
             _transferSingleRange(_start, _from, _to, _start, _stop);
             if (_value == 0) {
-                emit Transfer(_from, _to, _bigValue);
                 return;
             }
         }
