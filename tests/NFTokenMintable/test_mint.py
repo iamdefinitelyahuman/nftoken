@@ -2,6 +2,8 @@
 
 import pytest
 
+ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
 
 def test_mint(accounts, nftmint):
     '''mint'''
@@ -31,7 +33,7 @@ def test_mint_burn_mint(accounts, nftmint):
     nftmint.mint(accounts[0], 10000, {'from': accounts[0]})
     assert nftmint.totalSupply() == 10000
     assert nftmint.rangesOf(accounts[0]) == [(10001, 20001,)]
-    assert nftmint.getRange(1)[0] == '0x0000000000000000000000000000000000000000'
+    assert nftmint.getRange(1)[0] == ZERO_ADDRESS
 
 
 def test_mint_no_merge_owner(accounts, nftmint):
@@ -85,3 +87,13 @@ def test_mint_overflow(accounts, nftmint):
         nftmint.mint(accounts[0], 1000, {'from': accounts[0]})
     with pytest.reverts("dev: upper bound"):
         nftmint.mint(accounts[0], 9, {'from': accounts[0]})
+
+
+def test_events(accounts, nftmint):
+    tx = nftmint.mint(accounts[1], 1000, {'from': accounts[0]})
+    assert 'Transfer' in tx.events
+    expected = {'from': ZERO_ADDRESS, 'to': accounts[1], 'amount': 1000}
+    assert tx.events['Transfer'] == expected
+    assert 'TransferRange' in tx.events
+    expected = {'from': ZERO_ADDRESS, 'to': accounts[1], 'start': 1, 'stop': 1001, 'amount': 1000}
+    assert tx.events['TransferRange'] == expected
