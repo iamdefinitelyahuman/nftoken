@@ -19,7 +19,6 @@ RUN npm install -g ganache-cli@6.5.1
 # Brownie installs compilers at runtime so ensure the updates are
 # in the compiled image so it doesn't do this every time
 RUN brownie compile; true
-RUN python -m pytest tests
 
 # Fix UnicodeEncodeError error when running tests
 ENV PYTHONIOENCODING=utf-8
