@@ -13,7 +13,13 @@ def isolation(fn_isolation):
 # contract deployment
 @pytest.fixture(scope="module")
 def nft(accounts, NFToken):
-    token = accounts[0].deploy(NFToken, "Test NFT", "NFT")
+    token = accounts[0].deploy(NFToken, "Test NFT", "NFT", 30000)
+    yield token
+
+
+@pytest.fixture(scope="module")
+def nftmint(accounts, NFTokenMintable):
+    token = accounts[0].deploy(NFTokenMintable, "Test NFT", "NFT", 0)
     yield token
 
 
