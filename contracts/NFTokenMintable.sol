@@ -14,6 +14,12 @@ contract NFTokenMintable is NFToken {
 
     address owner;
 
+    /**
+        @notice constructor method
+        @param _name Token Name
+        @param _symbol Token symbol
+        @param _totalSupply Total supply (assigned to msg.sender)
+     */
     constructor(
         string memory _name,
         string memory _symbol,

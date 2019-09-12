@@ -36,14 +36,13 @@ contract NFToken is ERC20Interface {
         uint64 length;
         uint64[9223372036854775808] ranges;
     }
-
     struct Range {
         address owner;
         uint64 stop;
     }
 
-    event Transfer(address indexed from, address indexed to, uint256 amount);
     event Approval(address indexed owner, address indexed spender, uint256 amount);
+    event Transfer(address indexed from, address indexed to, uint256 amount);
     event TransferRange(
         address indexed from,
         address indexed to,
@@ -52,6 +51,12 @@ contract NFToken is ERC20Interface {
         uint256 amount
     );
 
+    /**
+        @notice constructor method
+        @param _name Token Name
+        @param _symbol Token symbol
+        @param _totalSupply Total supply (assigned to msg.sender)
+     */
     constructor(string memory _name, string memory _symbol, uint64 _totalSupply) public {
         require(_totalSupply <= MAX_UPPER_BOUND);
         name = _name;
@@ -73,7 +78,7 @@ contract NFToken is ERC20Interface {
     }
 
     /**
-        @notice Fetch the allowance
+        @notice ERC20 allowance standard
         @param _owner Owner of the tokens
         @param _spender Spender of the tokens
         @return integer
@@ -90,7 +95,7 @@ contract NFToken is ERC20Interface {
     }
 
     /**
-        @notice ERC-20 balanceOf standard
+        @notice ERC20 balanceOf standard
         @param _owner Address of balance to query
         @return integer
      */
@@ -134,6 +139,12 @@ contract NFToken is ERC20Interface {
         return _ranges;
     }
 
+    /**
+        @notice ERC20 approve standard
+        @param _spender Address approved to transfer tokens
+        @param _value Amount approved for transfer
+        @return bool success
+     */
     function approve(address _spender, uint256 _value) external returns (bool) {
         allowed[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
@@ -141,7 +152,7 @@ contract NFToken is ERC20Interface {
     }
 
     /**
-        @notice ERC-20 transfer standard
+        @notice ERC20 transfer standard
         @param _to Recipient
         @param _value Amount being transferred
         @return bool success
@@ -152,7 +163,7 @@ contract NFToken is ERC20Interface {
     }
 
     /**
-        @notice ERC-20 transferFrom standard
+        @notice ERC20 transferFrom standard
         @dev This will transfer tokens starting from balance.ranges[0]
         @param _from Sender address
         @param _to Recipient address
@@ -269,49 +280,50 @@ contract NFToken is ERC20Interface {
         emit TransferRange(_from, _to, _start, _stop, _stop-_start);
 
         if (_pointer == _start) {
-            /* touches both */
+            /* entire range is being transferred */
             if (_rangeStop == _stop) {
                 _replaceInBalanceRange(_from, _start, 0);
                 bool _left = (rangeMap[_prev].owner == _to);
                 bool _right = (rangeMap[_stop].owner == _to);
-                /* no join */
+                /* no merges with surrounding ranges */
                 if (!_left && !_right) {
                     _replaceInBalanceRange(_to, 0, _start);
                     r.owner = _to;
                     return;
                 }
                 _setRangePointers(_pointer, _stop, 0);
-                /* join left */
+                /* merging with previous range */
                 if (!_right) {
                     delete rangeMap[_pointer];
                     rangeMap[_prev].stop = _stop;
                     _setRangePointers(_prev, _stop, _prev);
                     return;
                 }
-                /* join right */
+                /* merging with next range */
                 if (!_left) {
                     _replaceInBalanceRange(_to, _stop, _start);
                     _setRange(_pointer, _to, rangeMap[_stop].stop);
-                /* join both */
-                } else {
-                    _replaceInBalanceRange(_to, _stop, 0);
-                    delete rangeMap[_pointer];
-                    rangeMap[_prev].stop = rangeMap[_stop].stop;
-                    _setRangePointers(_prev, _start, 0);
-                    _setRangePointers(_stop, rangeMap[_stop].stop, 0);
-                    _setRangePointers(_prev, rangeMap[_prev].stop, _prev);
+                    delete rangeMap[_stop];
+                    return;
                 }
+                /* merging with both ranges */
+                _replaceInBalanceRange(_to, _stop, 0);
+                delete rangeMap[_pointer];
+                rangeMap[_prev].stop = rangeMap[_stop].stop;
+                _setRangePointers(_prev, _start, 0);
+                _setRangePointers(_stop, rangeMap[_stop].stop, 0);
+                _setRangePointers(_prev, rangeMap[_prev].stop, _prev);
                 delete rangeMap[_stop];
                 return;
             }
 
-            /* touches left */
+            /* range to transfer starts at beginning of existing range */
             _setRangePointers(_start, _rangeStop, 0);
             _setRange(_stop, _from, _rangeStop);
             _replaceInBalanceRange(_from, _start, _stop);
             delete rangeMap[_pointer];
 
-            /* same owner left */
+            /* merging with previous range */
             if (rangeMap[_prev].owner == _to) {
                 _setRangePointers(_prev, _start, 0);
                 _start = _prev;
@@ -322,14 +334,14 @@ contract NFToken is ERC20Interface {
             return;
         }
 
-        /* shared logic - touches right and touches nothing */
+        /* shared logic - inside / ends at end */
         _setRangePointers(_pointer, _rangeStop, 0);
         r.stop = _start;
         _setRangePointers(_pointer, _start, _pointer);
 
-        /* touches right */
+        /* range to transfer ends at end of existing range */
         if (_rangeStop == _stop) {
-            /* same owner right */
+            /* merging with next range */
             if (rangeMap[_stop].owner == _to) {
                 _replaceInBalanceRange(_to, _stop, _start);
                 _setRangePointers(_stop, rangeMap[_stop].stop, 0);
@@ -343,7 +355,7 @@ contract NFToken is ERC20Interface {
             return;
         }
 
-        /* touches nothing */
+        /* range to transfer is inside the existing range */
         _replaceInBalanceRange(_to, 0, _start);
         _setRange(_start, _to, _stop);
         _replaceInBalanceRange(_from, 0, _stop);
@@ -365,7 +377,7 @@ contract NFToken is ERC20Interface {
     }
 
     /**
-        @notice internal - replace value in balance range array
+        @notice modifies the balance range array
         @param _addr Balance address
         @param _old Token index to remove
         @param _new Token index to add
@@ -379,7 +391,7 @@ contract NFToken is ERC20Interface {
     {
         uint64[9223372036854775808] storage r = balances[_addr].ranges;
         if (_old == 0) {
-            // add new range
+            // add a new range to the array
             r[balances[_addr].length] = _new;
             balances[_addr].length = balances[_addr].length.add(1);
             return;
@@ -387,10 +399,10 @@ contract NFToken is ERC20Interface {
         for (uint256 i; i <= balances[_addr].length; i++) {
             if (r[i] == _old) {
                 if (_new > 0) {
-                    // replace existing range
+                    // replace an existing range
                     r[i] = _new;
                 } else {
-                    // delete existing range
+                    // delete an existing range
                     balances[_addr].length = balances[_addr].length.sub(1);
                     r[i] = r[balances[_addr].length];
                 }
@@ -427,17 +439,17 @@ contract NFToken is ERC20Interface {
         @dev
             Given a token index, this will iterate through the range
             and return the mapping pointer that the index is present within.
-        @param i Token index
+        @param _idx Token index
      */
-    function _getPointer(uint256 i) internal view returns (uint64) {
+    function _getPointer(uint256 _idx) internal view returns (uint64) {
         uint256 _increment = 1;
         while (true) {
-            if (tokens[i] != 0) return tokens[i];
-            if (i.mod(_increment.mul(16)) == 0) {
+            if (tokens[_idx] != 0) return tokens[_idx];
+            if (_idx.mod(_increment.mul(16)) == 0) {
                 _increment = _increment.mul(16);
-                require(i <= upperBound); // dev: exceeds upper bound
+                require(_idx <= upperBound); // dev: exceeds upper bound
             }
-            i = i.add(_increment);
+            _idx = _idx.add(_increment);
         }
     }
 }

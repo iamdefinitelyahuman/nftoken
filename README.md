@@ -28,9 +28,9 @@ Unit testing and deployment of this project is performed with [Brownie](https://
 
 To run the tests:
 
-``bash
+```bash
 $ pytest tests/
-``
+```
 
 A [dockerfile](Dockerfile) is available if you are experiencing issues.
 
