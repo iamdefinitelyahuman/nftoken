@@ -5,9 +5,8 @@ import "./ERC20Interface.sol";
 
 /**
     @title Non-Fungible ERC20
-    @author
-        Ben Hauser - @iamdefinitelyahuman
-        with guidance from Gabriel Shapiro - @lex-node
+    @author Ben Hauser - @iamdefinitelyahuman
+    @author with guidance from Gabriel Shapiro - @lex-node
     @dev
         Expands upon the ERC20 token standard
         https://theethereum.wiki/w/index.php/ERC20_Token_Standard
@@ -53,9 +52,19 @@ contract NFToken is ERC20Interface {
         uint256 amount
     );
 
-    constructor(string memory _name, string memory _symbol) public {
+    constructor(string memory _name, string memory _symbol, uint64 _totalSupply) public {
+        require(_totalSupply < MAX_UPPER_BOUND);
         name = _name;
         symbol = _symbol;
+        if (_totalSupply == 0) return;
+        _setRange(1, msg.sender, _totalSupply+1);
+        balances[msg.sender].balance = _totalSupply;
+        balances[msg.sender].length = 1;
+        balances[msg.sender].ranges[0] = 1;
+        totalSupply = _totalSupply;
+        upperBound = _totalSupply;
+        emit Transfer(ZERO_ADDRESS, msg.sender, _totalSupply);
+        emit TransferRange(ZERO_ADDRESS, msg.sender, 1, _totalSupply+1, _totalSupply);
     }
 
     /* modifier to ensure a range index is within bounds */
@@ -123,86 +132,6 @@ contract NFToken is ERC20Interface {
             _ranges[i] = [b.ranges[i], rangeMap[b.ranges[i]].stop];
         }
         return _ranges;
-    }
-
-    /**
-        @notice Mints new tokens
-        @param _owner Address to assign new tokens to
-        @param _value Number of tokens to mint
-        @return Bool success
-     */
-    function mint(
-        address _owner,
-        uint64 _value
-    )
-        external
-        returns (bool)
-    {
-        require(_value > 0); // dev: mint 0
-        require(upperBound.add(_value) <= MAX_UPPER_BOUND); // dev: upper bound
-        uint64 _start = upperBound.add(1);
-        uint64 _stop = _start + _value;
-        if (rangeMap[tokens[upperBound]].owner == _owner) {
-            /* merge with previous range */
-            uint64 _pointer = tokens[upperBound];
-            rangeMap[_pointer].stop = _stop;
-        } else {
-            /* create new range */
-            _setRange(_start, _owner, _stop);
-            balances[_owner].ranges[balances[_owner].length] = _start;
-            balances[_owner].length = balances[_owner].length.add(1);
-        }
-        balances[_owner].balance = balances[_owner].balance.add(_value);
-        totalSupply = totalSupply.add(_value);
-        upperBound = upperBound.add(_value);
-        emit Transfer(ZERO_ADDRESS, _owner, _value);
-        emit TransferRange(ZERO_ADDRESS, _owner, _start, _stop, _value);
-        return true;
-    }
-
-    /**
-        @notice Burns tokens
-        @dev Cannot burn multiple ranges in a single call
-        @param _start Start index of range to burn
-        @param _stop Stop index of range to burn
-        @return Bool success
-     */
-    function burn(uint64 _start, uint64 _stop) external returns (bool) {
-        require(_stop > _start); // dev: burn 0
-        uint64 _pointer = _getPointer(_stop-1);
-        require(_pointer <= _start); // dev: multiple ranges
-        address _owner = rangeMap[_pointer].owner;
-        require(_owner != ZERO_ADDRESS); // dev: already burnt
-        if (rangeMap[_pointer].stop > _stop) {
-            _splitRange(_stop);
-        }
-        if (_pointer < _start) {
-            _splitRange(_start);
-        }
-        _replaceInBalanceRange(_owner, _start, 0);
-        uint64 _value = _stop.sub(_start);
-        totalSupply = totalSupply.sub(_value);
-        balances[_owner].balance = balances[_owner].balance.sub(_value);
-        emit Transfer(_owner, ZERO_ADDRESS, _value);
-        emit TransferRange(_owner, ZERO_ADDRESS, _start, _stop, _value);
-        rangeMap[_start].owner = ZERO_ADDRESS;
-        return true;
-    }
-
-    /**
-        @notice Splits a range
-        @dev Used to split ranges during token burn
-        @param _split Index to split the range at
-     */
-    function _splitRange(uint64 _split) internal {
-        uint64 _pointer = _getPointer(_split);
-        Range storage r = rangeMap[_pointer];
-        uint64 _stop = r.stop;
-        r.stop = _split;
-        _replaceInBalanceRange(r.owner, 0, _split);
-        _setRangePointers(_pointer, _stop, 0);
-        _setRangePointers(_pointer, _split, _pointer);
-        _setRange(_split, r.owner, _stop);
     }
 
     function approve(address _spender, uint256 _value) external returns (bool) {
