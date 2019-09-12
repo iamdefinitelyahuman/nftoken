@@ -1,6 +1,7 @@
 pragma solidity ^0.5.11;
 
 import "./SafeMath.sol";
+import "./ERC20Interface.sol";
 
 /**
     @title Non-Fungible ERC20
@@ -9,7 +10,7 @@ import "./SafeMath.sol";
         Expands upon the ERC20 token standard
         https://theethereum.wiki/w/index.php/ERC20_Token_Standard
  */
-contract NFToken {
+contract NFToken is ERC20Interface {
 
     using SafeMath for uint256;
     using SafeMath64 for uint64;
