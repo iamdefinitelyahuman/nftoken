@@ -5,8 +5,9 @@ import pytest
 
 
 @pytest.fixture(scope="module", autouse=True)
-def setup(nft, accounts):
-    nft.mint(accounts[0], 100000000000000, {'from': accounts[0]})
+def nft(NFToken, accounts):
+    token = accounts[0].deploy(NFToken, "Test NFT", "NFT", 100000000000000)
+    yield token
 
 
 def _transfer_and_assert(nft, accounts, from_, to, amount):

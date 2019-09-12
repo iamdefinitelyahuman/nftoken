@@ -3,13 +3,6 @@
 import pytest
 
 
-@pytest.fixture(scope="module", autouse=True)
-def setup(accounts, nft):
-    nft.mint(accounts[1], 10000, {'from': accounts[0]})
-    nft.mint(accounts[2], 10000, {'from': accounts[0]})
-    nft.mint(accounts[3], 10000, {'from': accounts[0]})
-
-
 def test_check_bounds(accounts, nft):
     '''check bounds'''
     with pytest.reverts("dev: index out of bounds"):
@@ -40,14 +33,6 @@ def test_not_owner(accounts, nft):
     '''sender does not own range'''
     with pytest.reverts("dev: sender does not own"):
         nft.transferRange(accounts[3], 11000, 12000, {'from': accounts[1]})
-
-
-def test_same_addr(accounts, nft):
-    '''cannot send to self'''
-    with pytest.reverts("dev: cannot send to self"):
-        nft.transferRange(accounts[2], 11000, 12000, {'from': accounts[2]})
-    with pytest.reverts("dev: cannot send to self"):
-        nft.transfer(accounts[1], 1000, {'from': accounts[1]})
 
 
 def test_uint64_overflow(accounts, nft):

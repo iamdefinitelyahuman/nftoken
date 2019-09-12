@@ -3,13 +3,6 @@
 import pytest
 
 
-@pytest.fixture(scope="module", autouse=True)
-def setup(accounts, nft):
-    nft.mint(accounts[1], 10000, {'from': accounts[0]})
-    nft.mint(accounts[2], 10000, {'from': accounts[0]})
-    nft.mint(accounts[3], 10000, {'from': accounts[0]})
-
-
 def test_inside_one(check_ranges, accounts, nft):
     '''inside, one nft'''
     nft.transferRange(accounts[4], 12000, 12001, {'from': accounts[2]})

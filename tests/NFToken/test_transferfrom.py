@@ -3,13 +3,6 @@
 import pytest
 
 
-@pytest.fixture(scope="module", autouse=True)
-def setup(accounts, nft):
-    nft.mint(accounts[1], 10000, {'from': accounts[0]})
-    nft.mint(accounts[2], 10000, {'from': accounts[0]})
-    nft.mint(accounts[3], 10000, {'from': accounts[0]})
-
-
 def test_approve(accounts, nft):
     assert nft.allowance(accounts[1], accounts[2]) == 0
     nft.approve(accounts[2], 10000, {'from': accounts[1]})

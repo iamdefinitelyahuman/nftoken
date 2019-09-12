@@ -53,7 +53,7 @@ contract NFToken is ERC20Interface {
     );
 
     constructor(string memory _name, string memory _symbol, uint64 _totalSupply) public {
-        require(_totalSupply < MAX_UPPER_BOUND);
+        require(_totalSupply <= MAX_UPPER_BOUND);
         name = _name;
         symbol = _symbol;
         if (_totalSupply == 0) return;
@@ -201,7 +201,7 @@ contract NFToken is ERC20Interface {
         balances[_to].balance = balances[_to].balance.add(_value);
 
         emit Transfer(msg.sender, _to, _value);
-        if (msg.sender != _to && _value == 0) {
+        if (msg.sender != _to && _value > 0) {
             _transferSingleRange(_pointer, msg.sender, _to, _start, _stop);
         }
 

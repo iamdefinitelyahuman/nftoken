@@ -3,13 +3,6 @@
 import pytest
 
 
-@pytest.fixture(scope="module", autouse=True)
-def setup(accounts, nft):
-    nft.mint(accounts[1], 10000, {'from': accounts[0]})
-    nft.mint(accounts[2], 10000, {'from': accounts[0]})
-    nft.mint(accounts[3], 10000, {'from': accounts[0]})
-
-
 def test_verify_initial(check_ranges):
     '''verify initial ranges'''
     check_ranges(
