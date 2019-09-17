@@ -8,7 +8,7 @@
 
 The goal in building `NFToken` was to create a token that is transferrable like an ERC20, allows anyone to verify the complete chain of custody for any given token, and does not have prohibitively high gas costs for large transfers.
 
-The implementation in this repository is a minimal proof of concept that can serve as a starting point for those who wish to expand upon these ideas and integrate them within their own projects. We have also produced an expanded version as an integral component of the [Zerolaw Augmentation Protocol](https://github.com/iamdefinitelyahuman/ZAP-Tech), that allows unique attributes to be applied on a per-token basis.
+The implementation in this repository is a minimal proof of concept that can serve as a starting point for those who wish to expand upon these ideas and integrate them within their own projects. We have also produced an expanded version as an integral component of the [ZeroLaw Augmentation Protocol (ZAP)](https://github.com/iamdefinitelyahuman/ZAP-Tech), that allows unique attributes to be applied on a per-token basis.
 
 ## How it Works
 
