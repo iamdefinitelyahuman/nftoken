@@ -19,6 +19,9 @@ contract NFToken is ERC20Interface {
     uint256 constant MAX_UPPER_BOUND = (2**64) - 2;
     address constant ZERO_ADDRESS = address(0);
 
+    /** depending on the intended totalSupply, you may wish to adjust this constant */
+    uint256 constant SCOPING_MULTIPLIER = 16;
+
     /** cannot fractionalize non-fungibles */
     uint8 public constant decimals = 0;
     string public name;
@@ -425,12 +428,12 @@ contract NFToken is ERC20Interface {
             return;
         }
         tokens[_stop] = _value;
-        uint256 _interval = 16;
+        uint256 _interval = SCOPING_MULTIPLIER;
         while (true) {
             if (_stop < _interval) return;
             uint256 i = uint256(_stop).div(_interval).mul(_interval);
 
-            _interval = _interval.mul(16);
+            _interval = _interval.mul(SCOPING_MULTIPLIER);
             if (i.mod(_interval) == 0) continue;
             if (i > _start) tokens[i] = _value;
         }
@@ -447,8 +450,8 @@ contract NFToken is ERC20Interface {
         uint256 _increment = 1;
         while (true) {
             if (tokens[_idx] != 0) return tokens[_idx];
-            if (_idx.mod(_increment.mul(16)) == 0) {
-                _increment = _increment.mul(16);
+            if (_idx.mod(_increment.mul(SCOPING_MULTIPLIER)) == 0) {
+                _increment = _increment.mul(SCOPING_MULTIPLIER);
                 require(_idx <= upperBound); // dev: exceeds upper bound
             }
             _idx = _idx.add(_increment);
