@@ -1,12 +1,12 @@
 # NFToken
 
-`NFToken` is a non-fungible implementation of the ERC20 standard, allowing scaleable NFT transfers with fixed gas costs.
+`NFToken` is a non-fungible implementation of the ERC20 standard, allowing scalable NFT transfers with fixed gas costs.
 
 ## Motivations
 
 `NFToken` is inspired by discussions with [Gabriel Shapiro](https://twitter.com/lex_node) about the legal benefits and technical challenges of representing certificated shares on the Ethereum blockchain. See his excellent article "[Tokenizing Corporate Capital Stock](https://gabrielshapiro.wordpress.com/2018/10/28/2/)" for more information on this subject.
 
-The goal in building `NFToken` was to create a token that is transferrable like an ERC20, allows anyone to verify the complete chain of custody for any given token, and does not have prohibitively high gas costs for large transfers.
+The goal in building `NFToken` was to create a token that is transferable like an ERC20, allows anyone to verify the complete chain of custody for any given token, and does not have prohibitively high gas costs for large transfers.
 
 The implementation in this repository is a minimal proof of concept that can serve as a starting point for those who wish to expand upon these ideas and integrate them within their own projects. We have also produced an expanded version as an integral component of the [ZeroLaw Augmentation Protocol (ZAP)](https://github.com/iamdefinitelyahuman/ZAP-Tech), that allows unique attributes to be applied on a per-token basis.
 
@@ -14,7 +14,7 @@ The implementation in this repository is a minimal proof of concept that can ser
 
 `NFToken` applies a unique, sequential index value to every token. The first token minted will have an index value of `1`. The maximum index value is `18446744073709551616` (`2^64-2`). References to token ranges are in the format `start:stop` where the final included value is `stop-1`. For example, a range of `2:6` would contains tokens `2`, `3`, `4` and `5`.
 
-Rather than storing every individual ID number, the contract only records the start and end of each token range. It takes advantage of the lack of cost in declaring empty storage, and saves range data in long fixed-length arrays.
+Rather than storing every individual ID number, the contract only records the end of each token range. It takes advantage of the lack of cost in declaring empty storage, and saves range data in long fixed-length arrays.
 
 Each transfer of tokens will include one or more `TransferRange` events. Monitoring this event allows you to track the chain of custody for each token.
 
@@ -22,9 +22,9 @@ Each transfer of tokens will include one or more `TransferRange` events. Monitor
 
 The upper bound cost to mint is `~500,000` gas. This mints `2^64-2` tokens - the maximum `totalSupply` for the contract.
 
-The upper bound gas cost to transfer a single range is `~86,000` gas for the first range, and `~38,000` for each additional range. With a maximally framented token range, transferring one hundred tokens with a single token per range will cost `~39,000` gas per token.
+The upper bound gas cost to transfer a single range is `~86,000` gas for the first range, and `~38,000` for each additional range. With a maximally fragmented token range, transferring one hundred tokens with a single token per range will cost `~39,000` gas per token.
 
-However, **transfer costs remain consistent regardless of the size of the range**. This means the absolute lower bound cost, transfering `2^64-2` tokens as a single range, is `~0.00000000145` gas per token. A more reasonable lower bound, transferring one hundred tokens within a single range, costs `~860` gas per token.
+However, **transfer costs remain consistent regardless of the size of the range**. This means the absolute lower bound cost, transferring `2^64-2` tokens as a single range, is `~0.00000000145` gas per token. A more reasonable lower bound, transferring one hundred tokens within a single range, costs `~860` gas per token.
 
 The contract will merge ranges whenever possible, however fragmentation is inevitable and over time transfer costs are expected to increase. There are likely further optimizations that can be performed on this code to decrease costs and reduce the rate of fragmentation. If you have any ideas, [I would love to hear from you](mailto:b.hauser@zerolaw.tech).
 
