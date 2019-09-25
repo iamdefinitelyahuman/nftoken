@@ -419,9 +419,11 @@ contract NFToken is ERC20Interface {
         @param _value Pointer value
      */
     function _setRangePointers(uint64 _start, uint64 _stop, uint64 _value) internal {
-        tokens[_start] = _value;
         _stop = _stop.sub(1);
-        if (_start == _stop) return;
+        if (_start == _stop) {
+            tokens[_start] = _value;
+            return;
+        }
         tokens[_stop] = _value;
         uint256 _interval = 16;
         while (true) {
