@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import pytest
+import brownie
 
 ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
@@ -117,26 +117,26 @@ def test_burn_right_one_token(accounts, nftmint):
 def test_burn_zero(accounts, nftmint):
     '''cannot burn 0 tokens'''
     nftmint.mint(accounts[0], 10000, {'from': accounts[0]})
-    with pytest.reverts("dev: burn 0"):
+    with brownie.reverts("dev: burn 0"):
         nftmint.burn(1, 1, {'from': accounts[0]})
-    with pytest.reverts("dev: burn 0"):
+    with brownie.reverts("dev: burn 0"):
         nftmint.burn(5000, 5000, {'from': accounts[0]})
-    with pytest.reverts("dev: burn 0"):
+    with brownie.reverts("dev: burn 0"):
         nftmint.burn(10000, 10000, {'from': accounts[0]})
 
 
 def test_burn_exceeds_balance(accounts, nftmint):
     '''burn exceeds balance'''
-    with pytest.reverts("dev: exceeds upper bound"):
+    with brownie.reverts("dev: exceeds upper bound"):
         nftmint.burn(1, 101, {'from': accounts[0]})
     nftmint.mint(accounts[0], 4000, {'from': accounts[0]})
-    with pytest.reverts("dev: exceeds upper bound"):
+    with brownie.reverts("dev: exceeds upper bound"):
         nftmint.burn(1, 5001, {'from': accounts[0]})
     nftmint.burn(1, 3001, {'from': accounts[0]})
-    with pytest.reverts("dev: exceeds upper bound"):
+    with brownie.reverts("dev: exceeds upper bound"):
         nftmint.burn(3001, 4002, {'from': accounts[0]})
     nftmint.burn(3001, 4001, {'from': accounts[0]})
-    with pytest.reverts("dev: exceeds upper bound"):
+    with brownie.reverts("dev: exceeds upper bound"):
         nftmint.burn(4001, 4101, {'from': accounts[0]})
 
 
@@ -144,7 +144,7 @@ def test_burn_multiple_ranges(accounts, nftmint):
     '''burn multiple ranges'''
     nftmint.mint(accounts[0], 1000, {'from': accounts[0]})
     nftmint.mint(accounts[1], 1000, {'from': accounts[0]})
-    with pytest.reverts("dev: multiple ranges"):
+    with brownie.reverts("dev: multiple ranges"):
         nftmint.burn(500, 1500, {'from': accounts[0]})
 
 
@@ -152,10 +152,10 @@ def test_reburn(accounts, nftmint):
     '''cannot burn non-owner tokens'''
     nftmint.mint(accounts[0], 1000, {'from': accounts[0]})
     nftmint.mint(accounts[1], 1000, {'from': accounts[0]})
-    with pytest.reverts("dev: only owner tokens"):
+    with brownie.reverts("dev: only owner tokens"):
         nftmint.burn(1500, 1600, {'from': accounts[0]})
     nftmint.burn(100, 200, {'from': accounts[0]})
-    with pytest.reverts("dev: only owner tokens"):
+    with brownie.reverts("dev: only owner tokens"):
         nftmint.burn(100, 200, {'from': accounts[0]})
 
 

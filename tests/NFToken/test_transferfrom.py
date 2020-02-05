@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import pytest
+import brownie
 
 
 def test_approve(accounts, nft):
@@ -22,7 +22,7 @@ def test_transfer_from(accounts, nft):
 
 def test_insufficient_allowance(accounts, nft):
     nft.approve(accounts[2], 3000, {'from': accounts[1]})
-    with pytest.reverts("dev: underflow"):
+    with brownie.reverts("dev: underflow"):
         nft.transferFrom(accounts[1], accounts[4], 4000, {'from': accounts[2]})
-    with pytest.reverts("dev: underflow"):
+    with brownie.reverts("dev: underflow"):
         nft.transferFrom(accounts[3], accounts[4], 1, {'from': accounts[2]})

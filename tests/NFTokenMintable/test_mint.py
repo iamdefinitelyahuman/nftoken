@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import pytest
+import brownie
 
 ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
@@ -73,19 +73,19 @@ def test_mint_one(accounts, nftmint):
 
 def test_mint_zero(accounts, nftmint):
     '''mint 0 tokens'''
-    with pytest.reverts("dev: mint 0"):
+    with brownie.reverts("dev: mint 0"):
         nftmint.mint(accounts[0], 0, {'from': accounts[0]})
     nftmint.mint(accounts[0], 10000, {'from': accounts[0]})
-    with pytest.reverts("dev: mint 0"):
+    with brownie.reverts("dev: mint 0"):
         nftmint.mint(accounts[0], 0, {'from': accounts[0]})
 
 
 def test_mint_overflow(accounts, nftmint):
     '''mint - overflows'''
     nftmint.mint(accounts[0], (2**64) - 10, {'from': accounts[0]})
-    with pytest.reverts("dev: overflow"):
+    with brownie.reverts("dev: overflow"):
         nftmint.mint(accounts[0], 1000, {'from': accounts[0]})
-    with pytest.reverts("dev: upper bound"):
+    with brownie.reverts("dev: upper bound"):
         nftmint.mint(accounts[0], 9, {'from': accounts[0]})
 
 
