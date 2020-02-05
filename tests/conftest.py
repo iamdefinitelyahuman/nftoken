@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import functools
+
 import pytest
 
 
@@ -14,9 +15,9 @@ def isolation(fn_isolation):
 @pytest.fixture(scope="module")
 def nft(accounts, NFToken):
     token = accounts[0].deploy(NFToken, "Test NFT", "NFT", 30000)
-    token.transfer(accounts[1], 10000, {'from': accounts[0]})
-    token.transfer(accounts[2], 10000, {'from': accounts[0]})
-    token.transfer(accounts[3], 10000, {'from': accounts[0]})
+    token.transfer(accounts[1], 10000, {"from": accounts[0]})
+    token.transfer(accounts[2], 10000, {"from": accounts[0]})
+    token.transfer(accounts[3], 10000, {"from": accounts[0]})
     yield token
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import functools
+
 import pytest
 
 
@@ -13,7 +14,7 @@ def nft(NFToken, accounts):
 def _transfer_and_assert(nft, accounts, from_, to, amount):
     from_bal = nft.balanceOf(accounts[from_])
     to_bal = nft.balanceOf(accounts[to])
-    nft.transfer(accounts[to], amount, {'from': accounts[from_]})
+    nft.transfer(accounts[to], amount, {"from": accounts[from_]})
     assert nft.balanceOf(accounts[from_]) == from_bal - amount
     assert nft.balanceOf(accounts[to]) == to_bal + amount
 
@@ -37,15 +38,13 @@ def ts(nft, accounts):
     yield functools.partial(_totalSupply, nft, accounts)
 
 
-
-
 def test_simple(transfer):
-    '''Simple transfer'''
+    """Simple transfer"""
     transfer(0, 1, 12345)
 
 
 def test_no_intersect(transfer, ts):
-    '''No intersection'''
+    """No intersection"""
     transfer(0, 1, 10)
     transfer(0, 2, 1000)
     transfer(0, 3, 10)
@@ -58,7 +57,7 @@ def test_no_intersect(transfer, ts):
 
 
 def test_middle(transfer, ts):
-    '''Intersect on both sides'''
+    """Intersect on both sides"""
     transfer(0, 1, 100)
     transfer(0, 2, 120)
     transfer(0, 1, 3)
@@ -67,7 +66,7 @@ def test_middle(transfer, ts):
 
 
 def test_start(transfer, ts):
-    '''Intersect at start'''
+    """Intersect at start"""
     transfer(0, 1, 3040)
     transfer(0, 2, 33)
     transfer(1, 2, 41)
@@ -76,7 +75,7 @@ def test_start(transfer, ts):
 
 
 def test_stop(transfer, ts):
-    '''Intersect at end'''
+    """Intersect at end"""
     transfer(0, 1, 100)
     transfer(0, 2, 100)
     transfer(0, 3, 42)
@@ -87,7 +86,7 @@ def test_stop(transfer, ts):
 
 
 def test_one(transfer, ts):
-    '''One nft'''
+    """One nft"""
     transfer(0, 1, 1)
     transfer(0, 2, 1)
     transfer(0, 3, 1)
@@ -101,7 +100,7 @@ def test_one(transfer, ts):
 
 
 def test_split(transfer, accounts, nft, skip_coverage):
-    '''many ranges'''
+    """many ranges"""
     for i in range(2, 7):
         transfer(0, 1, 12345678)
         transfer(0, i, 12345678)
