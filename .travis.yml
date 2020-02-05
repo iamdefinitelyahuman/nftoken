@@ -1,0 +1,17 @@
+matrix:
+  include:
+    - name: "Brownie Tests, Linting - Python 3.7 on Xenial Linux"
+      language: python
+      python: 3.7
+      dist: xenial
+      install:
+        - sudo add-apt-repository -y ppa:ethereum/ethereum
+        - sudo add-apt-repository -y ppa:deadsnakes/ppa
+        - sudo apt-get update
+        - sudo apt-get install -y python3.7-dev npm solc
+        - npm -g install ganache-cli@6.8.2
+        - python -m pip install tox==3.14.3
+      script: tox
+
+notifications:
+  email: false
