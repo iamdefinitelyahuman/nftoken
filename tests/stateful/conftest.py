@@ -1,15 +1,19 @@
 #!/usr/bin/python3
 
+import pytest
 
-class BaseStateMachine:
+
+class _BaseStateMachine:
+
+    """
+    This base state machine class contains initialization and invariant
+    methods that are shared across multiple stateful tests.
+    """
+
     def __init__(cls, NFToken, accounts, total_supply):
         cls.accounts = accounts
         cls.total_supply = total_supply
         cls.nft = NFToken.deploy("Test NFT", "NFT", total_supply, {"from": accounts[0]})
-
-    def setup(self):
-        self.balances = {i: 0 for i in self.accounts}
-        self.balances[self.accounts[0]] = self.total_supply
 
     def invariant_balances(self):
         for account, balance in self.balances.items():
@@ -17,6 +21,7 @@ class BaseStateMachine:
 
     def invariant_ranges(self):
         all_ranges = []
+
         for account in self.accounts:
             ranges = self.nft.rangesOf(account)
             all_ranges.extend(ranges)
@@ -33,3 +38,8 @@ class BaseStateMachine:
 
         for i in range(len(all_ranges) - 1):
             assert all_ranges[i][1] == all_ranges[i + 1][0]
+
+
+@pytest.fixture
+def BaseStateMachine():
+    yield _BaseStateMachine
