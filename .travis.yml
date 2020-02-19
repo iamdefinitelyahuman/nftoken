@@ -1,11 +1,11 @@
 matrix:
   include:
-    - name: "Brownie Tests, Linting - Python 3.7 on Xenial Linux"
+    - name: "Brownie Tests, Linting - Python 3.7 on Bionic Linux"
       script: tox -e lint,tests
-    - name: "Stateful Tests - Python 3.7 on Xenial Linux"
+    - name: "Stateful Tests - Python 3.7 on Bionic Linux"
       script: travis_wait tox -e stateful
 
-dist: xenial
+dist: bionic
 language: python
 python: 3.7
 install:
